@@ -424,4 +424,9 @@
     <string name="invalid_max_ambient_cache_size">Set ambient\nmax cache</string>
     <string name="clear_ambient_cache_button">Clear ambient\ncache</string>
     <string name="adjust_map_button">Adjust map</string>
+
+    <!-- Multiple geometries directions line-->
+    <string name="no_legs_toast">This directions route has no legs</string>
+    <string name="no_steps_toast">The leg has no steps</string>
+
 </resources>
