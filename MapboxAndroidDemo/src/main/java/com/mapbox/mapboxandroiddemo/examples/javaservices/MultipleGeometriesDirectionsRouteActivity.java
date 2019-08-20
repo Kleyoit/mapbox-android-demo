@@ -51,18 +51,18 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineWidth;
 
 /**
  * Use the Mapbox Directions API to request and retrieve a Directions route. Show the route line and
- * place a circle where each of the route's waypoints are.
+ * place a circle where each of the route's step maneuver locations are.
  */
 public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-  private MapView mapView;
   private static final String CIRCLE_GEOJSON_SOURCE_ID = "CIRCLE_GEOJSON_SOURCE_ID";
   private static final String LINE_GEOJSON_SOURCE_ID = "LINE_GEOJSON_SOURCE_ID";
   private static final String STEPS_CIRCLE_LAYER_ID = "steps-circle-layer";
   private static final String STEPS_BACKGROUND_CIRCLE_LAYER_ID = "steps-background-circle-layer";
   private static final String DIRECTIONS_ROUTE_LINE_LAYER_ID = "directions-line-layer";
+  private static final String SETTLEMENT_LABEL_LAYER_ID = "settlement-label";
 
-  // Adjust the following static final variables to style this example's UI
+  // Adjust the following private static final variables to style this example's UI
   private static final String LINE_COLOR = "#EE2E23";
   private static final float LINE_WIDTH = 8f;
   private static final float CIRCLE_RADIUS = 8f;
@@ -71,6 +71,7 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
   private static final int BACKGROUND_CIRCLE_COLOR = Color.parseColor(LINE_COLOR);
   private static final boolean ALIGN_CIRCLES_WITH_MAP = true;
 
+  private MapView mapView;
   private MapboxMap mapboxMap;
   private DirectionsRoute currentRoute;
   private Point origin = Point.fromLngLat(-122.39648, 37.7914277);
@@ -94,22 +95,26 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
 
   @Override
   public void onMapReady(@NonNull MapboxMap mapboxMap) {
+    this.mapboxMap = mapboxMap;
     mapboxMap.setStyle(new Style.Builder().fromUri(Style.SATELLITE_STREETS)
       .withSource(new GeoJsonSource(CIRCLE_GEOJSON_SOURCE_ID))
       .withSource(new GeoJsonSource(LINE_GEOJSON_SOURCE_ID)), new Style.OnStyleLoaded() {
         @Override
           public void onStyleLoaded(@NonNull Style style) {
-            MultipleGeometriesDirectionsRouteActivity.this.mapboxMap = mapboxMap;
-            initDirectionsRouteLineLayer(style);
-            initDirectionStepsCircleLayer(style);
-            initDirectionStepsBackgroundCircleLayer(style);
+            initLineLayerForDirectionsRoute(style);
+            initStepManeuverCircleLayer(style);
+            initStepManeuverBackgroundCircleLayer(style);
             getRoute(origin, destination);
           }
       });
   }
 
-  private void initDirectionsRouteLineLayer(@NonNull Style loadedMapStyle) {
-    // Create and style a LineLayer that will draw the Mapbox Directions API route line.
+  /**
+   * Create and style a LineLayer that will draw the Mapbox Directions API route line.
+   *
+   * @param loadedMapStyle the map's {@link Style} object
+   */
+  private void initLineLayerForDirectionsRoute(@NonNull Style loadedMapStyle) {
     LineLayer directionsRouteLineLayer = new LineLayer(DIRECTIONS_ROUTE_LINE_LAYER_ID, LINE_GEOJSON_SOURCE_ID);
     directionsRouteLineLayer.setProperties(
       lineColor(Color.parseColor(LINE_COLOR)),
@@ -120,16 +125,19 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
     directionsRouteLineLayer.setFilter(eq(literal("$type"), literal("LineString")));
 
     // Add the layer below the "settlement-label" layer (city name labels, etc.)
-    if (loadedMapStyle.getLayer("settlement-label") != null) {
-      loadedMapStyle.addLayerBelow(directionsRouteLineLayer, "settlement-label");
+    if (loadedMapStyle.getLayer(SETTLEMENT_LABEL_LAYER_ID) != null) {
+      loadedMapStyle.addLayerBelow(directionsRouteLineLayer, SETTLEMENT_LABEL_LAYER_ID);
     } else {
       loadedMapStyle.addLayer(directionsRouteLineLayer);
     }
   }
 
-  private void initDirectionStepsCircleLayer(@NonNull Style loadedMapStyle) {
-    // Create and style a CircleLayer that will place circles for each of the Mapbox Directions API route's
-    // waypoint locations
+  /**
+   * Create and style a CircleLayer that will place circles for each of the Mapbox Directions API
+   * route's step maneuver locations.
+   * @param loadedMapStyle the map's {@link Style} object
+   */
+  private void initStepManeuverCircleLayer(@NonNull Style loadedMapStyle) {
     CircleLayer individualCirclesLayer = new CircleLayer(STEPS_CIRCLE_LAYER_ID, CIRCLE_GEOJSON_SOURCE_ID);
     individualCirclesLayer.setProperties(
       circleColor(CIRCLE_COLOR),
@@ -138,9 +146,12 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
     loadedMapStyle.addLayer(individualCirclesLayer);
   }
 
-  private void initDirectionStepsBackgroundCircleLayer(@NonNull Style loadedMapStyle) {
-    // Create and style a CircleLayer that will place circles for each of the Mapbox Directions API route's
-    // waypoint locations
+  /**
+   * Create and style a CircleLayer that will place circles beneath the STEPS_CIRCLE_LAYER_ID layer
+   * for each of the Mapbox Directions API route's step maneuver locations.
+   * @param loadedMapStyle the map's {@link Style} object
+   */
+  private void initStepManeuverBackgroundCircleLayer(@NonNull Style loadedMapStyle) {
     CircleLayer individualCirclesLayer = new CircleLayer(STEPS_BACKGROUND_CIRCLE_LAYER_ID, CIRCLE_GEOJSON_SOURCE_ID);
     individualCirclesLayer.setProperties(
       circleColor(BACKGROUND_CIRCLE_COLOR),
@@ -157,7 +168,6 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
    * @param destination the desired finish point of the route
    */
   private void getRoute(Point origin, Point destination) {
-
     MapboxDirections directionsApiClient = MapboxDirections.builder()
       .origin(origin)
       .destination(destination)
@@ -170,10 +180,7 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
     directionsApiClient.enqueueCall(new Callback<DirectionsResponse>() {
       @Override
       public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
-        System.out.println(call.request().url().toString());
-
-        // You can get the generic HTTP info about the response.
-        Timber.d("Response code: " + response.code());
+        Timber.d("Response code: %s", response.code());
         if (response.body() == null) {
           Timber.e("No routes found, make sure you set the right user and access token.");
           return;
@@ -183,7 +190,6 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
         }
 
         if (response.body() != null) {
-
           // Get the directions route
           currentRoute = response.body().routes().get(0);
 
@@ -193,8 +199,6 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
               // Retrieve the sources from the map
               GeoJsonSource circleLayerSource = style.getSourceAs(CIRCLE_GEOJSON_SOURCE_ID);
               GeoJsonSource lineLayerSource = style.getSourceAs(LINE_GEOJSON_SOURCE_ID);
-
-
               if (circleLayerSource != null && response.body() != null) {
 
                 List<Feature> featureList = new ArrayList<>();
@@ -207,7 +211,7 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
                     featureList.add(Feature.fromGeometry(stepManeuverLocationPoint));
                   }
                 } else {
-                  Timber.d("%s", getString(R.string.no_legs_toast));
+                  Timber.d(getString(R.string.no_legs_toast));
                 }
 
                 // Update the CircleLayer's source with the Feature list.
@@ -230,8 +234,9 @@ public class MultipleGeometriesDirectionsRouteActivity extends AppCompatActivity
 
       @Override
       public void onFailure(Call<DirectionsResponse> call, Throwable throwable) {
-        Timber.e("Error: " + throwable.getMessage());
-        Toast.makeText(MultipleGeometriesDirectionsRouteActivity.this, "Error: %s" + throwable.getMessage(),
+        Timber.e(throwable);
+        Toast.makeText(MultipleGeometriesDirectionsRouteActivity.this,
+          String.format("Error: %s", throwable.getMessage()),
           Toast.LENGTH_SHORT).show();
       }
     });
