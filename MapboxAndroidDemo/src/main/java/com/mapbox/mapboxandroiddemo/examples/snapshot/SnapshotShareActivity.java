@@ -101,7 +101,7 @@ public class SnapshotShareActivity extends AppCompatActivity {
     if (mapSnapshotter == null) {
       // Initialize snapshotter with map dimensions and given bounds
       MapSnapshotter.Options options =
-        new MapSnapshotter.Options(width, height).withRegion(latLngBounds).withStyle(style.getUrl());
+        new MapSnapshotter.Options(width, height).withRegion(latLngBounds).withStyle(style.getUri());
 
       mapSnapshotter = new MapSnapshotter(SnapshotShareActivity.this, options);
     } else {

@@ -92,7 +92,7 @@ public class SnapshotNotificationActivity extends AppCompatActivity implements O
     if (mapSnapshotter == null) {
       // Initialize snapshotter with map dimensions and given bounds
       MapSnapshotter.Options options =
-        new MapSnapshotter.Options(width, height).withStyle(style.getUrl()).withRegion(latLngBounds);
+        new MapSnapshotter.Options(width, height).withStyle(style.getUri()).withRegion(latLngBounds);
 
       mapSnapshotter = new MapSnapshotter(SnapshotNotificationActivity.this, options);
     } else {
@@ -121,11 +121,13 @@ public class SnapshotNotificationActivity extends AppCompatActivity implements O
         (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      NotificationChannel notificationChannel = notificationManager.getNotificationChannel(id);
-      if (notificationChannel == null) {
-        notificationChannel = new NotificationChannel(id, "channel_name", NotificationManager.IMPORTANCE_HIGH);
-        notificationChannel.setDescription("channel_description");
-        notificationManager.createNotificationChannel(notificationChannel);
+      if (notificationManager != null) {
+        NotificationChannel notificationChannel = notificationManager.getNotificationChannel(id);
+        if (notificationChannel == null) {
+          notificationChannel = new NotificationChannel(id, "channel_name", NotificationManager.IMPORTANCE_HIGH);
+          notificationChannel.setDescription("channel_description");
+          notificationManager.createNotificationChannel(notificationChannel);
+        }
       }
     }
     Intent intent = new Intent(this, MainActivity.class)

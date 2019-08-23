@@ -205,7 +205,7 @@ public class OptimizationActivity extends AppCompatActivity implements OnMapRead
       .coordinates(coordinates)
       .overview(DirectionsCriteria.OVERVIEW_FULL)
       .profile(DirectionsCriteria.PROFILE_DRIVING)
-      .accessToken(Mapbox.getAccessToken())
+      .accessToken(Mapbox.getAccessToken() != null ? Mapbox.getAccessToken() : getString(R.string.access_token))
       .build();
 
     optimizedClient.enqueueCall(new Callback<OptimizationResponse>() {
@@ -216,7 +216,7 @@ public class OptimizationActivity extends AppCompatActivity implements OnMapRead
           Toast.makeText(OptimizationActivity.this, R.string.no_success, Toast.LENGTH_SHORT).show();
           return;
         } else {
-          if (response.body().trips().isEmpty()) {
+          if (response.body() != null && response.body().trips().isEmpty()) {
             Timber.d("%s size = %s", getString(R.string.successful_but_no_routes), response.body().trips().size());
 
             Toast.makeText(OptimizationActivity.this, R.string.successful_but_no_routes,

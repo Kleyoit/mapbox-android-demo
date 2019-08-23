@@ -44,7 +44,6 @@ public class HighlightedLineActivity extends AppCompatActivity implements
   private MapView mapView;
   private MapboxMap mapboxMap;
   private LineLayer backgroundLineLayer;
-  private LineLayer routeLineLayer;
   private Style style;
 
   @Override
@@ -119,7 +118,7 @@ public class HighlightedLineActivity extends AppCompatActivity implements
    */
   private void initLayers(@NonNull Style loadedMapStyle) {
     // Add the regular LineLayer
-    routeLineLayer = new LineLayer("line-layer-id", "source-id");
+    LineLayer routeLineLayer = new LineLayer("line-layer-id", "source-id");
     routeLineLayer.setProperties(
       lineWidth(9f),
       lineColor(Color.BLUE),

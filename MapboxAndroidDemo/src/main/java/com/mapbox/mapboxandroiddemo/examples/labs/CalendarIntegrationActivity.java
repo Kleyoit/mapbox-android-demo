@@ -10,13 +10,8 @@ import android.graphics.PointF;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.CalendarContract;
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.appcompat.app.AppCompatActivity;
 import android.widget.Toast;
 
 import com.mapbox.android.core.permissions.PermissionsListener;
@@ -42,6 +37,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -133,14 +132,7 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
         {Manifest.permission.READ_CALENDAR}, MY_CAL_REQ);
     } else {
       Uri calendarUri;
-      if (Integer.parseInt(Build.VERSION.SDK) >= 8 && Integer.parseInt(Build.VERSION.SDK) <= 13) {
-        calendarUri = Uri.parse("content://com.android.calendar/events");
-      } else if (Integer.parseInt(Build.VERSION.SDK) >= 14) {
-        calendarUri = CalendarContract.Events.CONTENT_URI;
-      } else {
-        calendarUri = Uri.parse("content://calendar/events");
-      }
-
+      calendarUri = CalendarContract.Events.CONTENT_URI;
       Calendar startTime = Calendar.getInstance();
       startTime.set(2018, 2, 1, 0, 0);
 
@@ -202,28 +194,30 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
         @Override
         public void onResponse(Call<GeocodingResponse> call,
                                Response<GeocodingResponse> response) {
-          List<CarmenFeature> results = response.body().features();
-          if (results.size() > 0) {
-            // Get the first Feature from the successful geocoding response
-            CarmenFeature feature = results.get(0);
-            if (feature != null && style.isFullyLoaded()) {
-              LatLng featureLatLng = new LatLng(feature.center().latitude(), feature.center().longitude());
-              Feature singleFeature = Feature.fromGeometry(Point.fromLngLat(featureLatLng.getLongitude(),
-                featureLatLng.getLatitude()));
-              singleFeature.addStringProperty(PROPERTY_TITLE, eventTitle);
-              singleFeature.addStringProperty(PROPERTY_LOCATION, eventLocation);
-              featureList.add(singleFeature);
-              featureCollection = FeatureCollection.fromFeatures(featureList);
-              GeoJsonSource source = style.getSourceAs(geojsonSourceId);
-              if (source != null) {
-                source.setGeoJson(featureCollection);
-              } else {
-                Timber.d("onResponse: listOfCalendarEvents == null");
+          if (response.body() != null) {
+            List<CarmenFeature> results = response.body().features();
+            if (results.size() > 0) {
+              // Get the first Feature from the successful geocoding response
+              CarmenFeature feature = results.get(0);
+              if (feature != null && style.isFullyLoaded()) {
+                LatLng featureLatLng = new LatLng(feature.center().latitude(), feature.center().longitude());
+                Feature singleFeature = Feature.fromGeometry(Point.fromLngLat(featureLatLng.getLongitude(),
+                  featureLatLng.getLatitude()));
+                singleFeature.addStringProperty(PROPERTY_TITLE, eventTitle);
+                singleFeature.addStringProperty(PROPERTY_LOCATION, eventLocation);
+                featureList.add(singleFeature);
+                featureCollection = FeatureCollection.fromFeatures(featureList);
+                GeoJsonSource source = style.getSourceAs(geojsonSourceId);
+                if (source != null) {
+                  source.setGeoJson(featureCollection);
+                } else {
+                  Timber.d("onResponse: listOfCalendarEvents == null");
+                }
               }
+            } else {
+              Toast.makeText(CalendarIntegrationActivity.this, R.string.no_results,
+                Toast.LENGTH_SHORT).show();
             }
-          } else {
-            Toast.makeText(CalendarIntegrationActivity.this, R.string.no_results,
-              Toast.LENGTH_SHORT).show();
           }
         }
 
@@ -293,25 +287,20 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
 
   @Override
   public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-    switch (requestCode) {
-      case MY_CAL_REQ: {
-        if (grantResults.length > 0
-          && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-          if (mapboxMap != null) {
-            mapboxMap.getStyle(new Style.OnStyleLoaded() {
-              @Override
-              public void onStyleLoaded(@NonNull Style style) {
-                getCalendarData(style);
-              }
-            });
-          }
-        } else {
-          Toast.makeText(this, R.string.user_calendar_permission_explanation, Toast.LENGTH_LONG).show();
+    if (requestCode == MY_CAL_REQ) {
+      if (grantResults.length > 0
+        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (mapboxMap != null) {
+          mapboxMap.getStyle(new Style.OnStyleLoaded() {
+            @Override
+            public void onStyleLoaded(@NonNull Style style) {
+              getCalendarData(style);
+            }
+          });
         }
-        return;
+      } else {
+        Toast.makeText(this, R.string.user_calendar_permission_explanation, Toast.LENGTH_LONG).show();
       }
-      default:
-        return;
     }
   }
 
